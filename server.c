@@ -182,7 +182,7 @@ Query* add_query(Query* query_list, const char* ip_address, unsigned short int p
 
     while (current != NULL) {
         if (strcmp(current->ip_address, ip_address) == 0 && current->port == port) {
-            return query_list;  
+            return query_list; 
         }
         current = current->next;
     }
@@ -265,13 +265,24 @@ void process_args(int argc, char** argv, CmdArg* pCmd) {
 
 int check_ip_port(Rule* rule_list, const char* ip, int port) {
     Rule* current_rule = rule_list;
+    int query_found = 0;
+
     while (current_rule) {
         if (is_ip_in_range(current_rule->ip_range, ip) && is_port_in_range(current_rule->port_range, port)) {
-            current_rule->queries = add_query(current_rule->queries, ip, port);
-            return 1; 
+            if (!query_exists(current_rule->queries, ip, port)) {
+                current_rule->queries = add_query(current_rule->queries, ip, port);
+                return 1;  
+            } else {
+                query_found = 1;  
+            }
         }
         current_rule = current_rule->next;
     }
+
+    if (query_found) {
+        return 1;  
+    }
+
     return 0; 
 }
 
@@ -300,7 +311,6 @@ void run_server() {
     //Rule* pRuleHead = NULL;
     //Request* pRequestHead = NULL;
     int sock = 0;
-    char buffer[1024] = {0};
     int new_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
