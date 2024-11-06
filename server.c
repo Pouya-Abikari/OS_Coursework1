@@ -87,21 +87,9 @@ void add_command_history(CommandHistory** head, const char* command) {
     }
 }
 
-int rule_exists(Rule* rule_list, const char* ip_range, const char* port_range) {
-    Rule* current_rule = rule_list;
-    while (current_rule) {
-        if (strcmp(current_rule->ip_range, ip_range) == 0 && strcmp(current_rule->port_range, port_range) == 0) {
-            return 1;  
-        }
-        current_rule = current_rule->next;
-    }
-    return 0;  
-}
-
 void print_commands(CommandHistory* head) {
-    int i = 1;
     for (CommandHistory* current = head; current; current = current->next) {
-        printf("Command No.%d: %s", i++, current->command);
+        printf("%s", current->command);
     }
 }
 
@@ -111,15 +99,36 @@ int is_valid_ip_part(const char* part) {
 }
 
 int is_valid_ip(const char* ip) {
-    char ip_copy[16];
+    char ip_copy[64];  // Adjusted size to handle potential range (e.g., 255.255.255.255-255.255.255.255)
     strncpy(ip_copy, ip, sizeof(ip_copy) - 1);
-    ip_copy[15] = '\0';
+    ip_copy[63] = '\0';  // Ensure null termination
+
+    // Check for an IP range
+    char *dash_pos = strchr(ip_copy, '-');
+    if (dash_pos) {
+        *dash_pos = '\0';  // Split into two parts: start IP and end IP
+        char* start_ip = ip_copy;
+        char* end_ip = dash_pos + 1;
+        return is_valid_ip(start_ip) && is_valid_ip(end_ip);  // Validate both parts separately
+    }
+
+    // Validate a single IP
     char* token;
     int count = 0;
     for (token = strtok(ip_copy, "."); token; token = strtok(NULL, "."), count++) {
         if (!is_valid_ip_part(token) || count >= 4) return 0;
     }
     return count == 4;
+}
+
+int is_valid_port_range(const char* port_range) {
+    int port1, port2;
+    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
+        // Ensure port1 <= port2 and both within valid range
+        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535);
+    }
+    // Handle single port
+    return (sscanf(port_range, "%d", &port1) == 1 && port1 >= 0 && port1 <= 65535);
 }
 
 int compare_ip(int ip1[4], int ip2[4]) {
@@ -154,9 +163,9 @@ int is_port_in_range(const char *port_range, int port) {
     }
 }
 
-int is_valid_port(int port) {
-    return port >= 0 && port <= 65535;
-}
+//int is_valid_port(int port) {
+//    return port >= 0 && port <= 65535;
+//}
 
 int query_exists(Query* query_list, const char* ip, int port) {
     Query* current = query_list;
@@ -169,24 +178,7 @@ int query_exists(Query* query_list, const char* ip, int port) {
     return 0;  // Query does not exist
 }
 
-int is_valid_port_range(const char* port_range) {
-    int port1, port2;
-    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
-        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535);  // Ensure port1 <= port2
-    }
-    return (sscanf(port_range, "%d", &port1) == 1 && port1 >= 0 && port1 <= 65535);
-}
-
 Query* add_query(Query* query_list, const char* ip_address, unsigned short int port) {
-    Query* current = query_list;
-
-    while (current != NULL) {
-        if (strcmp(current->ip_address, ip_address) == 0 && current->port == port) {
-            return query_list; 
-        }
-        current = current->next;
-    }
-
     Query* new_query = malloc(sizeof(Query));
     if (!new_query) {
         fprintf(stderr, "Memory allocation failed for new query.\n");
@@ -194,11 +186,33 @@ Query* add_query(Query* query_list, const char* ip_address, unsigned short int p
     }
     strncpy(new_query->ip_address, ip_address, sizeof(new_query->ip_address) - 1);
     new_query->port = port;
-    new_query->next = query_list;
-    return new_query;
+    new_query->next = NULL;
+
+    if (query_list == NULL) {
+        return new_query;  // If the list is empty, the new query is the first node
+    }
+
+    // Append the new query to the end of the list
+    Query* current = query_list;
+    while (current->next != NULL) {
+        current = current->next;
+    }
+    current->next = new_query;
+    return query_list;
 }
 
 Rule* add_rule(Rule* head, const char* ip_range, const char* port_range) {
+    // Check if the rule already exists
+    // Rule* current = head;
+    // while (current) {
+    //     if (strcmp(current->ip_range, ip_range) == 0 && strcmp(current->port_range, port_range) == 0) { // Rule exists, add it again
+    //         printf("Duplicate rule, not added\n");
+    //         return head;  // Rule exists, add it again
+    //     }
+    //     current = current->next;
+    // }
+
+    // Create a new rule if it doesn't already exist
     Rule* new_rule = malloc(sizeof(Rule));
     if (!new_rule) {
         fprintf(stderr, "Memory allocation failed for new rule.\n");
@@ -206,34 +220,39 @@ Rule* add_rule(Rule* head, const char* ip_range, const char* port_range) {
     }
 
     strncpy(new_rule->ip_range, ip_range, sizeof(new_rule->ip_range) - 1);
+    new_rule->ip_range[sizeof(new_rule->ip_range) - 1] = '\0';  // Ensure null termination
     strncpy(new_rule->port_range, port_range, sizeof(new_rule->port_range) - 1);
+    new_rule->port_range[sizeof(new_rule->port_range) - 1] = '\0';  // Ensure null termination
     new_rule->queries = NULL;
     new_rule->next = NULL;
 
+    // Link the new rule to the end of the list
     if (head == NULL) {
-        return new_rule;
+        head = new_rule;
+    } else {
+        Rule* temp = head;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = new_rule;
     }
 
-    Rule* temp = head;
-    while (temp->next != NULL) {
-        temp = temp->next;
-    }
-    temp->next = new_rule;
+    printf("Rule added\n");
     return head;
 }
 
 void add_command(const char* str) {
     add_command_history(&command_head, str);
 }
+
 void print_rules(Rule* head) {
-    int rule_number = 1;
     Rule* current_rule = head;
 
     while (current_rule != NULL) {
-        printf("Rule %d: IP %s, Port %s\n", rule_number++, current_rule->ip_range, current_rule->port_range);
+        printf("Rule: %s %s\n", current_rule->ip_range, current_rule->port_range);
         Query* current_query = current_rule->queries;
         while (current_query != NULL) {
-            printf("  Query: IP %s, Port %d\n", current_query->ip_address, current_query->port);
+            printf("Query: %s %d\n", current_query->ip_address, current_query->port);
             current_query = current_query->next;
         }
         current_rule = current_rule->next;
@@ -243,17 +262,21 @@ void print_rules(Rule* head) {
 void process_add_rule(char* line) {
     char ip[32], port[16];
     if (sscanf(line, "A %31s %15s", ip, port) != 2) {
-        printf("Invalid command format for adding a rule.\n");
+        printf("Invalid rule 1\n");
         return;
     }
 
-    if (rule_exists(rule_list, ip, port)) {
-        printf("Rule already exists: IP %s, Port %s\n", ip, port);
+    if (!is_valid_ip(ip)) {
+        printf("Invalid rule 2\n");
+        return;
+    }
+
+    if (!is_valid_port_range(port)) {
+        printf("Invalid rule 3\n");
         return;
     }
 
     rule_list = add_rule(rule_list, ip, port);
-    printf("Added rule: IP %s, Port %s\n", ip, port);
 }
 
 void process_args(int argc, char** argv, CmdArg* pCmd) {
@@ -265,56 +288,199 @@ void process_args(int argc, char** argv, CmdArg* pCmd) {
 
 int check_ip_port(Rule* rule_list, const char* ip, int port) {
     Rule* current_rule = rule_list;
-    int query_found = 0;
+    int connection_accepted = 0;
 
     while (current_rule) {
         if (is_ip_in_range(current_rule->ip_range, ip) && is_port_in_range(current_rule->port_range, port)) {
+            connection_accepted = 1; 
             if (!query_exists(current_rule->queries, ip, port)) {
                 current_rule->queries = add_query(current_rule->queries, ip, port);
-                return 1;  
-            } else {
-                query_found = 1;  
+                printf("Connection accepted\n");
+                return 1;
             }
         }
         current_rule = current_rule->next;
     }
 
-    if (query_found) {
-        return 1;  
+    if (connection_accepted) {
+        printf("Connection accepted\n");
+    } else {
+        printf("Connection rejected\n");
     }
 
-    return 0; 
+    return connection_accepted;
 }
 
 void process_check_ip(char* line) {
     char ip[32];
     int port;
     if (sscanf(line, "C %31s %d", ip, &port) != 2) {
-        printf("Invalid command format for checking IP and port.\n");
+        printf("Illegal IP address or port specified\n");
         return;
     }
 
-    if (check_ip_port(rule_list, ip, port)) {
-        printf("Connection accepted.\n");
-    } else {
-        printf("Connection rejected.\n");
-    }
+    check_ip_port(rule_list, ip, port);
 }
 
 void process_delete_rule(char *rule) {
-    //Deletes a rule from stored rules, which also deletes the list of IP addresses and ports stored for this rule.
-    //The rule should only be deleted if the stores exactly the same rule.
+    char ip[32], port[16];
+    if (sscanf(rule, "D %31s %15s", ip, port) != 2) {
+        printf("Invalid delete command\n");
+        return;
+    }
+
+    if (!is_valid_ip(ip) || !is_valid_port_range(port)) {
+        printf("Invalid rule\n");
+        return;
+    }
+
+    Rule* current = rule_list;
+    Rule* prev = NULL;
+
+    while (current != NULL) {
+        if (strcmp(current->ip_range, ip) == 0 && strcmp(current->port_range, port) == 0) {
+            if (prev == NULL) {
+                rule_list = current->next;  // Head case
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            printf("Rule deleted\n");
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+    printf("Rule not found\n");
+}
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <stdbool.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+// Forward declaration of existing functions to test
+void process_add_rule(char* line);
+void process_check_ip(char* line);
+void print_rules(Rule* head);
+void process_delete_rule(char* line);
+
+// Helper function to simulate a command input
+void simulate_command(char* command) {
+    printf("\nSimulating command: %s\n", command);
+    if (command[0] == 'A') {
+        process_add_rule(command);
+    } else if (command[0] == 'C') {
+        process_check_ip(command);
+    } else if (command[0] == 'L') {
+        print_rules(rule_list);
+    } else if (command[0] == 'D') {
+        process_delete_rule(command);
+    } else {
+        printf("Invalid command\n");
+    }
+}
+
+void run_tests() {
+    printf("\n--- Running Enhanced Automated Tests ---\n\n");
+
+    // Test rule addition
+    printf("Simulating command: A 1.1.1.1-1.1.1.20 1-20\n");
+    process_add_rule("A 1.1.1.1-1.1.1.20 1-20");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    printf("Simulating command: A 1.1.1.1-1.1.1.30 1-30\n");
+    process_add_rule("A 1.1.1.1-1.1.1.30 1-30");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test invalid rule addition
+    printf("Simulating command: A 1.1.1.1-1.1.1.20 abc\n");
+    process_add_rule("A 1.1.1.1-1.1.1.20 abc");
+
+    printf("Simulating command: A 1.1.1.300-1.1.1.20 1-20\n");
+    process_add_rule("A 1.1.1.300-1.1.1.20 1-20");
+
+    // Add duplicate connections
+    printf("Simulating command: C 1.1.1.15 10\n");
+    process_check_ip("C 1.1.1.15 10");
+
+    printf("Simulating command: C 1.1.1.15 10\n");
+    process_check_ip("C 1.1.1.15 10");  // Should not add again
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test overlapping rules (both should accept)
+    printf("Simulating command: C 1.1.1.19 19\n");
+    process_check_ip("C 1.1.1.19 19");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test with boundary ports
+    printf("Simulating command: A 1.1.1.40-1.1.1.50 0-65535\n");
+    process_add_rule("A 1.1.1.40-1.1.1.50 0-65535");
+
+    printf("Simulating command: C 1.1.1.45 65535\n");
+    process_check_ip("C 1.1.1.45 65535");
+
+    printf("Simulating command: C 1.1.1.45 0\n");
+    process_check_ip("C 1.1.1.45 0");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Add a rule with a single IP and test connections
+    printf("Simulating command: A 1.1.1.50 100\n");
+    process_add_rule("A 1.1.1.50 100");
+
+    printf("Simulating command: C 1.1.1.50 100\n");
+    process_check_ip("C 1.1.1.50 100");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test deletion
+    printf("Simulating command: D 1.1.1.1-1.1.1.20 1-20\n");
+    process_delete_rule("D 1.1.1.1-1.1.1.20 1-20");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test deletion of non-existing rule
+    printf("Simulating command: D 2.2.2.2-2.2.2.5 5\n");
+    process_delete_rule("D 2.2.2.2-2.2.2.5 5");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test invalid deletion command format
+    printf("Simulating command: D 1.1.1.1\n");
+    process_delete_rule("D 1.1.1.1");
+
+    printf("Simulating command: L\n");
+    print_rules(rule_list);
+
+    // Test query logging order consistency with multiple commands in between
+    printf("Simulating command: R\n");
+    print_commands(command_head);
+
+    printf("\n--- End of Enhanced Automated Tests ---\n");
 }
 
 void run_server() {
-    printf("Running in server mode\n");
-    //Rule* pRuleHead = NULL;
-    //Request* pRequestHead = NULL;
     int sock = 0;
     int new_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
-    char *message = "Hello from server";
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Socket failed");
@@ -324,11 +490,6 @@ void run_server() {
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
-
-    //convert address from text to binary
-    //inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
-
-    //connect(sock, (struct sockaddr *)&address, sizeof(address));
 
     if (bind(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
@@ -340,8 +501,6 @@ void run_server() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on port %d...\n", PORT);
-
     while (1) {
         if ((new_socket = accept(sock, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
             perror("Accept failed");
@@ -351,7 +510,7 @@ void run_server() {
         int argc_client;
         recv(new_socket, &argc_client, sizeof(argc_client), 0);
 
-        send(new_socket, message, strlen(message), 0);
+        //send();
         printf("Hello message sent to client\n");
 
         close(new_socket);
@@ -361,17 +520,14 @@ void run_server() {
 }
 
 void run_interactive() {
-    printf("Running in interactive mode\n");
     size_t n = 0;
     char *str = NULL;
     int res;
 
     while (1) {
-        printf("Enter command: \n");
         res = getline(&str, &n, stdin);
 
         if (res == -1) {
-            printf("Error reading input\n");
             free(str);
             break;
         }
@@ -393,16 +549,21 @@ void run_interactive() {
                 print_rules(rule_list);
                 break;
             case 'D':
-                printf("Command D\n");
+                process_delete_rule(str);
                 break;
             default:
-                printf("Invalid command\n");
+                printf("Illegal request\n");
                 break;
         }
 
         free(str);
         str = NULL;
     }
+}
+
+int main1(int argc, char** argv) {
+    run_tests(); // Run all automated tests
+    return 0;
 }
 
 int main(int argc, char ** argv) {
