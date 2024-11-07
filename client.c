@@ -4,58 +4,64 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-int main(int argc, char ** argv) {
-    if (argc != 3) {
-        printf("Usage: %s <ip> <port>\n", argv[0]);
+int main(int argc, char **argv) {
+    if (argc < 4 || argc == 5) {
+        fprintf(stderr, "Usage: %s <server_ip> <port> <command>\n", argv[0]);
         return -1;
     }
 
-    int sock = 0;
+    int sock;
     struct sockaddr_in serv_addr;
     char buffer[1024] = {0};
 
     // Create socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("Socket creation error\n");
+        perror("Socket creation error");
         return -1;
     }
 
+    memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(atoi(argv[2]));
 
-    // Convert IPv4 and IPv6 addresses from text to binary form
+    // Convert IPv4 address from text to binary form
     if (inet_pton(AF_INET, argv[1], &serv_addr.sin_addr) <= 0) {
-        printf("Invalid address or Address not supported\n");
+        perror("Invalid address/Address not supported");
+        close(sock);
         return -1;
     }
 
     // Connect to the server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("Connection Failed\n");
+        perror("Connection Failed");
+        close(sock);
         return -1;
     }
 
-    //send argc and argv to server, argv should not include ./client
-    send(sock, &argc, sizeof(argc), 0);
-    for (int i = 0; i < argc; i++) {
-        send(sock, argv[i], strlen(argv[i]), 0);
+    // Prepare and send the command
+    char command[1024] = {0};
+    int i;
+    for (i = 3; i < argc; i++) {
+        strcat(command, argv[i]);
+        if (i < argc - 1) strcat(command, " "); // Add space between command parts
     }
-    printf("%d\n", argc);
 
-    // Read message from server
-    read(sock, buffer, 1024);
-    printf("Message from server: %s\n", buffer);
-    for (int i = 0; i < argc; i++) {
-            printf("Argument %d: %s\n", i, argv[i]);
-        }
+    if (send(sock, command, strlen(command), 0) < 0) {
+        perror("Failed to send command");
+        close(sock);
+        return -1;
+    }
+
+    // Receive and print the response from the server
+    if (recv(sock, buffer, sizeof(buffer), 0) < 0) {
+        perror("Failed to receive response");
+        close(sock);
+        return -1;
+    }
+
+    printf("%s", buffer);
 
     // Close the socket
     close(sock);
     return 0;
 }
-
-//int main (int argc, char ** argv) {
-//    /* to be written */
-//    printf ("Client to be written\n");
-//    return 0;
-//}
