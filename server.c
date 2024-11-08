@@ -8,12 +8,9 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <fcntl.h>
-#include <arpa/inet.h>
 
 pthread_mutex_t rule_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t command_history_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-#define PORT 2200
 
 typedef struct query_node {
     char ip_address[32];
@@ -120,20 +117,18 @@ int is_valid_ip_part(const char* part) {
 }
 
 int is_valid_ip(const char* ip) {
-    char ip_copy[64];  // Adjusted size to handle potential range (e.g., 255.255.255.255-255.255.255.255)
+    char ip_copy[64]; 
     strncpy(ip_copy, ip, sizeof(ip_copy) - 1);
-    ip_copy[63] = '\0';  // Ensure null termination
+    ip_copy[63] = '\0';  
 
-    // Check for an IP range
     char *dash_pos = strchr(ip_copy, '-');
     if (dash_pos) {
-        *dash_pos = '\0';  // Split into two parts: start IP and end IP
+        *dash_pos = '\0'; 
         char* start_ip = ip_copy;
         char* end_ip = dash_pos + 1;
-        return is_valid_ip(start_ip) && is_valid_ip(end_ip);  // Validate both parts separately
+        return is_valid_ip(start_ip) && is_valid_ip(end_ip); 
     }
 
-    // Validate a single IP
     char* token;
     int count = 0;
     for (token = strtok(ip_copy, "."); token; token = strtok(NULL, "."), count++) {
@@ -146,36 +141,28 @@ int is_valid_port_range(const char* port_range) {
     int port1, port2;
     char *endptr;
 
-    // Check for range format "start-end"
     if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
-        // Ensure port1 <= port2 and both are within the valid range
         return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535);
     }
 
-    // Check for a single port format
     port1 = strtol(port_range, &endptr, 10);
     if (*endptr == '\0' && port1 >= 0 && port1 <= 65535) {
-        return 1; // Valid single port
+        return 1;
     }
 
-    // If the format includes invalid characters or is not valid, return 0
     return 0;
 }
 
-// Function to check if an IP is within a specified range
 int is_ip_in_range(const char *ip_range, const char *target_ip) {
     char start_ip[16] = {0};
     char end_ip[16] = {0};
 
-    // Check if the range contains a dash to indicate a range
     char *dash_pos = strchr(ip_range, '-');
     if (dash_pos) {
-        // Split the start and end IPs
         strncpy(start_ip, ip_range, dash_pos - ip_range);
         start_ip[dash_pos - ip_range] = '\0';
         strcpy(end_ip, dash_pos + 1);
     } else {
-        // If no dash, it's a single IP range (start and end are the same)
         strcpy(start_ip, ip_range);
         strcpy(end_ip, ip_range);
     }
@@ -185,27 +172,24 @@ int is_ip_in_range(const char *ip_range, const char *target_ip) {
     parse_ip(end_ip, end_ip_array);
     parse_ip(target_ip, target_ip_array);
 
-    // Check if the target IP is greater than or equal to the start IP
     for (int i = 0; i < 4; i++) {
         if (target_ip_array[i] < start_ip_array[i]) {
-            return 0; // Target IP is less than the start IP
+            return 0;
         }
         if (target_ip_array[i] > start_ip_array[i]) {
-            break; // Once it's greater, no need to check further for start IP
+            break; 
         }
     }
 
-    // Check if the target IP is less than or equal to the end IP
     for (int i = 0; i < 4; i++) {
         if (target_ip_array[i] > end_ip_array[i]) {
-            return 0; // Target IP is greater than the end IP
+            return 0; 
         }
         if (target_ip_array[i] < end_ip_array[i]) {
-            break; // Once it's less, no need to check further for end IP
+            break;
         }
     }
 
-    // If we reach here, the target IP is within the range
     return 1;
 }
 
@@ -234,6 +218,7 @@ int query_exists(Query* query_list, const char* ip, int port) {
 }
 
 Query* add_query(Query* query_list, const char* ip_address, unsigned short int port) {
+
     Query* new_query = malloc(sizeof(Query));
     if (!new_query) {
         fprintf(stderr, "Memory allocation failed for new query.\n");
@@ -244,10 +229,9 @@ Query* add_query(Query* query_list, const char* ip_address, unsigned short int p
     new_query->next = NULL;
 
     if (query_list == NULL) {
-        return new_query;  // If the list is empty, the new query is the first node
+        return new_query; 
     }
 
-    // Append the new query to the end of the list
     Query* current = query_list;
     while (current->next != NULL) {
         current = current->next;
@@ -257,15 +241,6 @@ Query* add_query(Query* query_list, const char* ip_address, unsigned short int p
 }
 
 Rule* add_rule(Rule* head, const char* ip_range, const char* port_range) {
-    // Check if the rule already exists
-    // Rule* current = head;
-    // while (current) {
-    //     if (strcmp(current->ip_range, ip_range) == 0 && strcmp(current->port_range, port_range) == 0) { // Rule exists, add it again
-    //         printf("Duplicate rule, not added\n");
-    //         return head;  // Rule exists, add it again
-    //     }
-    //     current = current->next;
-    // }
 
     Rule* new_rule = malloc(sizeof(Rule));
     if (!new_rule) {
@@ -274,9 +249,9 @@ Rule* add_rule(Rule* head, const char* ip_range, const char* port_range) {
     }
 
     strncpy(new_rule->ip_range, ip_range, sizeof(new_rule->ip_range) - 1);
-    new_rule->ip_range[sizeof(new_rule->ip_range) - 1] = '\0';  // Ensure null termination
+    new_rule->ip_range[sizeof(new_rule->ip_range) - 1] = '\0';  
     strncpy(new_rule->port_range, port_range, sizeof(new_rule->port_range) - 1);
-    new_rule->port_range[sizeof(new_rule->port_range) - 1] = '\0';  // Ensure null termination
+    new_rule->port_range[sizeof(new_rule->port_range) - 1] = '\0'; 
     new_rule->queries = NULL;
     new_rule->next = NULL;
 
@@ -344,10 +319,21 @@ int process_add_rule(char* line) {
     return 1; 
 }
 
-void process_args(int argc, char** argv, CmdArg* pCmd) {
-    pCmd -> is_interactive = false;
-    if (argc == 2 && strcmp(argv[1], "-i") == 0){
-        pCmd -> is_interactive = true;
+void process_args(int argc, char** argv, CmdArg* pCmd, int *port) {
+    pCmd->is_interactive = false;
+    if (argc == 2) {
+        if (strcmp(argv[1], "-i") == 0) {
+            pCmd->is_interactive = true;
+        } else {
+            *port = atoi(argv[1]);
+            if (*port <= 0 || *port > 65535) {
+                fprintf(stderr, "Invalid port number. Please enter a port number between 1 and 65535.\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    } else {
+        fprintf(stderr, "Usage: %s -i for interactive mode or %s <port> to start server\n", argv[0], argv[0]);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -398,7 +384,7 @@ int process_delete_rule(char *rule) {
     while (current != NULL) {
         if (strcmp(current->ip_range, ip) == 0 && strcmp(current->port_range, port) == 0) {
             if (prev == NULL) {
-                rule_list = current->next;  // Head case
+                rule_list = current->next; 
             } else {
                 prev->next = current->next;
             }
@@ -415,7 +401,7 @@ int add_rule_safe(Rule* head, char* buffer) {
     int result = 0;
     pthread_mutex_lock(&rule_mutex);
 
-    result = process_add_rule(buffer); // Use existing function
+    result = process_add_rule(buffer); 
 
     pthread_mutex_unlock(&rule_mutex);
     return result;
@@ -424,7 +410,7 @@ int add_rule_safe(Rule* head, char* buffer) {
 void add_command_history_safe(const char* command) {
     pthread_mutex_lock(&command_history_mutex);
 
-    add_command(command); // Use existing function
+    add_command(command); 
 
     pthread_mutex_unlock(&command_history_mutex);
 }
@@ -432,7 +418,7 @@ void add_command_history_safe(const char* command) {
 void print_rules_safe(Rule* head) {
     pthread_mutex_lock(&rule_mutex);
 
-    print_rules(head); // Use existing function
+    print_rules(head); 
 
     pthread_mutex_unlock(&rule_mutex);
 }
@@ -441,7 +427,7 @@ int check_ip_port_safe(Rule* rule_list, char* buffer) {
     int result = 0;
     pthread_mutex_lock(&rule_mutex);
 
-    result = process_check_ip(buffer); // Adjust process_check_ip to return int
+    result = process_check_ip(buffer);
 
     pthread_mutex_unlock(&rule_mutex);
     return result;
@@ -451,13 +437,12 @@ int delete_rule_safe(Rule* rule_list, char* buffer) {
     int result = 0;
     pthread_mutex_lock(&rule_mutex);
 
-    result = process_delete_rule(buffer); // Use existing function
+    result = process_delete_rule(buffer); 
 
     pthread_mutex_unlock(&rule_mutex);
     return result;
 }
 
-// Function to capture output from a function call
 int capture_output(void (*func)(void*), void* arg, char* buffer, size_t buffer_size) {
     int saved_stdout = dup(STDOUT_FILENO);
     int out_pipe[2];
@@ -465,14 +450,12 @@ int capture_output(void (*func)(void*), void* arg, char* buffer, size_t buffer_s
     dup2(out_pipe[1], STDOUT_FILENO);
     close(out_pipe[1]);
 
-    // Call the function that generates output
     func(arg);
 
     fflush(stdout);
     read(out_pipe[0], buffer, buffer_size - 1);
-    buffer[buffer_size - 1] = '\0'; // Ensure null termination
+    buffer[buffer_size - 1] = '\0'; 
 
-    // Restore stdout
     dup2(saved_stdout, STDOUT_FILENO);
     close(saved_stdout);
     close(out_pipe[0]);
@@ -485,16 +468,14 @@ void *handle_client(void *arg) {
     free(arg);
 
     char buffer[1024] = {0};
-    char response[4096] = {0};  // Increase buffer size to capture more output
+    char response[4096] = {0};  
     int valread;
 
     while ((valread = read(sock, buffer, 1024)) > 0) {
-        buffer[valread] = '\0'; // Null-terminate the input
+        buffer[valread] = '\0';
 
-        // Split the input into commands by newline or another delimiter
         char *command = strtok(buffer, "\n");
         while (command != NULL) {
-            // Process each command separately
             add_command_history_safe(command);
 
             char firstChar = command[0];
@@ -543,95 +524,18 @@ void *handle_client(void *arg) {
                     break;
             }
             send(sock, response, strlen(response), 0);
-            memset(response, 0, sizeof(response)); // Clear response buffer
+            memset(response, 0, sizeof(response)); 
 
-            // Move to the next command in the input buffer
             command = strtok(NULL, "\n");
         }
-    memset(buffer, 0, sizeof(buffer)); // Clear the buffer for the next read cycle
+    memset(buffer, 0, sizeof(buffer)); 
 }
 
     close(sock);
     return NULL;
 }
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <stdbool.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <assert.h>
-
-void run_tests() {
-    printf("\n--- Running process_add_rule Tests ---\n");
-
-    // Valid rule addition
-    printf("Test 1: Valid single IP rule\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 192.168.1.1 100"));
-
-    printf("Test 2: Valid IP range rule\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 192.168.1.1-192.168.1.10 200-300"));
-
-    // Invalid rule addition due to start IP > end IP
-    printf("Test 3: Invalid IP range with start greater than end\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 192.168.1.10-192.168.1.1 100"));
-
-    // Invalid rule due to non-sequential IP range
-    printf("Test 4: Invalid single IP range defined as a range\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 192.168.1.1-192.168.1.1 100"));
-
-    // Valid rule addition with edge IPs
-    printf("Test 5: Valid IP range with edge case\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 1.0.0.0-255.255.255.255 1-65535"));
-
-    // Invalid rule due to invalid IP format
-    printf("Test 6: Invalid IP format\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 999.999.999.999 100"));
-
-    // Invalid port range
-    printf("Test 7: Invalid port range\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 192.168.1.1 70000"));
-
-    // Invalid rule with empty input
-    printf("Test 8: Empty input\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule(""));
-
-    // Valid rule with minimal IP range
-    printf("Test 9: Valid minimal IP range\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 192.168.1.1-192.168.1.2 100"));
-
-    // Invalid rule with invalid port range format
-    printf("Test 10: Invalid port range format\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 192.168.1.1 100-abc"));
-
-    // Test with duplicate rules
-    printf("Test 11: Duplicate rule addition\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 192.168.1.1-192.168.1.10 200-300"));
-    printf("Expected: 1 (Rule added - duplicate), Got: %d\n", process_add_rule("A 192.168.1.1-192.168.1.10 200-300"));
-
-    // Test with overlapping IP ranges
-    printf("Test 12: Overlapping IP ranges\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 192.168.1.5-192.168.1.15 150-250"));
-
-    // Test with valid single port
-    printf("Test 13: Valid rule with single port\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 10.10.10.10 5000"));
-
-    // Test with valid minimal port range
-    printf("Test 14: Valid minimal port range\n");
-    printf("Expected: 1 (Rule added), Got: %d\n", process_add_rule("A 172.16.0.1 1-2"));
-
-    // Invalid rule due to malformed input
-    printf("Test 15: Malformed input\n");
-    printf("Expected: 0 (Invalid rule), Got: %d\n", process_add_rule("A 172.16.0 100-"));
-
-    printf("\n--- End of process_add_rule Tests ---\n");
-}
-
-void run_server() {
+void run_server(int port) {
     int sock = 0, new_socket;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
@@ -643,7 +547,7 @@ void run_server() {
 
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(port); 
 
     if (bind(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
@@ -673,7 +577,7 @@ void run_server() {
         pthread_detach(tid);
     }
 
-    close(sock); 
+    close(sock);
 }
 
 void run_interactive() {
@@ -742,25 +646,17 @@ void run_interactive() {
     }
 }
 
-int main(int argc, char** argv) {
-    run_tests(); // Run all automated tests
-    return 0;
-}
-
-int main1(int argc, char ** argv) {
+int main(int argc, char ** argv) {
     /* to be written */
     CmdArg cmd;
-    process_args(argc, argv, &cmd);
+    int port = 0;
+    
+    process_args(argc, argv, &cmd, &port);
+    
     if (cmd.is_interactive) {
         run_interactive();
     } else {
-        run_server();
+        run_server(port);
     }
     return 0;
 }
-
-/*int main (int argc, char ** argv) {
-    printf ("Server to be written\n");
-    return 0;
-}
-*/
