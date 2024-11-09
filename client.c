@@ -5,9 +5,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <ifaddrs.h>  // For getifaddrs()
+#include <ifaddrs.h>
 
-// Custom function to convert IP address from string to binary format
 int string_to_ip(const char *ip_str, struct in_addr *addr) {
     unsigned int byte1, byte2, byte3, byte4;
     if (sscanf(ip_str, "%u.%u.%u.%u", &byte1, &byte2, &byte3, &byte4) != 4) {
@@ -18,7 +17,6 @@ int string_to_ip(const char *ip_str, struct in_addr *addr) {
     return 0;
 }
 
-// Custom function to convert binary IP format to string format
 char *ip_to_string(struct in_addr addr, char *buffer, size_t len) {
     snprintf(buffer, len, "%u.%u.%u.%u",
              (addr.s_addr >> 24) & 0xFF,
@@ -41,8 +39,8 @@ int resolve_hostname_to_ip(const char *hostname, char *ip, size_t ip_len) {
         if (ifa->ifa_addr == NULL) continue;
 
         family = ifa->ifa_addr->sa_family;
-        if (family == AF_INET) {  // We only look at IPv4
-            if (strncmp(ifa->ifa_name, "lo", 2) == 0) {  // Look for the loopback interface
+        if (family == AF_INET) {  
+            if (strncmp(ifa->ifa_name, "lo", 2) == 0) {  
                 struct sockaddr_in *addr = (struct sockaddr_in *)ifa->ifa_addr;
                 ip_to_string(addr->sin_addr, ip, ip_len);
                 freeifaddrs(ifaddr);
@@ -67,13 +65,11 @@ int main(int argc, char **argv) {
     char buffer[1024] = {0};
     char ip[INET_ADDRSTRLEN] = {0};
 
-    // Resolve hostname to IP if necessary
     if (resolve_hostname_to_ip(argv[1], ip, sizeof(ip)) != 0) {
         fprintf(stderr, "Error resolving hostname: %s\n", argv[1]);
         return -1;
     }
 
-    // Create socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation error");
         return -1;
@@ -87,18 +83,16 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    // Connect to the server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Connection Failed");
         close(sock);
         return -1;
     }
 
-    // Prepare and send the command
     char command[1024] = {0};
     for (int i = 3; i < argc; i++) {
         strcat(command, argv[i]);
-        if (i < argc - 1) strcat(command, " ");  // Add space between command parts
+        if (i < argc - 1) strcat(command, " ");
     }
 
     if (send(sock, command, strlen(command), 0) < 0) {
@@ -107,7 +101,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    // Receive and print the response from the server
     if (recv(sock, buffer, sizeof(buffer), 0) < 0) {
         perror("Failed to receive response");
         close(sock);
@@ -116,7 +109,6 @@ int main(int argc, char **argv) {
 
     printf("%s", buffer);
 
-    // Close the socket
     close(sock);
     return 0;
 }
