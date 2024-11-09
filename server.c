@@ -81,7 +81,7 @@ void process_ip_range(const char *ip_range, int start_ip[4], int end_ip[4]) {
         }
     } else {
         parse_ip(ip_range, start_ip);
-        memcpy(end_ip, start_ip, sizeof(int) * 4); // Treat as a single IP
+        memcpy(end_ip, start_ip, sizeof(int) * 4); 
     }
 }
 
