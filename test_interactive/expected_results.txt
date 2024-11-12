@@ -1,0 +1,537 @@
+Command 1: A 192.168.1.1 80
+Output: Rule added
+----------
+Command 2: A 192.168.1.1-192.168.1.10 80
+Output: Rule added
+----------
+Command 3: A 192.168.1.1 80-100
+Output: Rule added
+----------
+Command 4: A 192.168.1.1-192.168.1.10 80-100
+Output: Rule added
+----------
+Command 5: A 999.999.999.999 80
+Output: Invalid rule
+----------
+Command 6: A 192.168.1.1 70000
+Output: Invalid rule
+----------
+Command 7: A 192.168.1.1 -1
+Output: Invalid rule
+----------
+Command 8: A -1.168.1.1 80
+Output: Invalid rule
+----------
+Command 9: A abc.def.ghi.jkl 80
+Output: Invalid rule
+----------
+Command 10: A 192.168.1.1 abc
+Output: Invalid rule
+----------
+Command 11: A 80
+Output: Invalid rule
+----------
+Command 12: A 192.168.1.1
+Output: Invalid rule
+----------
+Command 13: A 192.168.1.1 80 extra
+Output: Invalid rule
+----------
+Command 14: A 0.0.0.0-0.0.0.1 80
+Output: Rule added
+----------
+Command 15: A 0.0.0.0-255.255.255.255 80
+Output: Rule added
+----------
+Command 16: A 192.168.1.1 0-1
+Output: Rule added
+----------
+Command 17: A 192.168.1.1 0-65535
+Output: Rule added
+----------
+Command 18: A 192.168.1.1 1000-100
+Output: Invalid rule
+----------
+Command 19: A 192.168.1.10-192.168.1.1 80
+Output: Invalid rule
+----------
+Command 20: A 192.168.1.1-192.168.1.1 80
+Output: Invalid rule
+----------
+Command 21: A 192.168.1 80
+Output: Invalid rule
+----------
+Command 22: A  80
+Output: Invalid rule
+----------
+Command 23: A 192.168.1.1 
+Output: Invalid rule
+----------
+Command 24: A 192. 168.1.1 80
+Output: Invalid rule
+----------
+Command 25: A 192.168.1.1 8 0
+Output: Invalid rule
+----------
+Command 26: A 192.168.1.1–192.168.1.10 80
+Output: Invalid rule
+----------
+Command 27: A 192.168.1.1 80–100
+Output: Invalid rule
+----------
+Command 28: A 192.168.a.1 80
+Output: Invalid rule
+----------
+Command 29: A 192.168.1.1 80a
+Output: Invalid rule
+----------
+Command 30: A 192.168.1.254-192.168.2.1 80
+Output: Rule added
+----------
+Command 31: A 192.168.1.1 0-80
+Output: Rule added
+----------
+Command 32: A 192.168.1.1 0
+Output: Rule added
+----------
+Command 33: A 192.168.1.1 65536
+Output: Invalid rule
+----------
+Command 34: A 192.168.1.1 -80-100
+Output: Invalid rule
+----------
+Command 35: A 192.168.a.b-192.168.c.d 80
+Output: Invalid rule
+----------
+Command 36: A 192.168.1.1 80-abc
+Output: Invalid rule
+----------
+Command 37: A 255.255.255.255 65535
+Output: Rule added
+----------
+Command 38: A 0.0.0.0 0
+Output: Rule added
+----------
+Command 39: 192.168.1.1 80
+Output: Illegal request
+----------
+Command 40: B 192.168.1.1 80
+Output: Illegal request
+----------
+Command 41: A 192.168.#.1 80
+Output: Invalid rule
+----------
+Command 42: A 192.168.1.1 80$
+Output: Invalid rule
+----------
+Command 43: A 192.168.\n1.1 80
+Output: Invalid rule
+----------
+Command 44: A 192.168.1.1 80\r
+Output: Invalid rule
+----------
+Command 45: A 192.168.1.1 - 192.168.1.10 80
+Output: Invalid rule
+----------
+Command 46: A 192.168.1.1 80 - 100
+Output: Invalid rule
+----------
+Command 47: A  192.168.1.1  80
+Output: Rule added
+----------
+Command 48: A\t192.168.1.1\t80
+Output: Invalid rule
+----------
+Command 49: A 10.0.0.0-10.0.0.255 80
+Output: Rule added
+----------
+Command 50: A 172.16.0.0-172.16.255.255 80
+Output: Rule added
+----------
+Command 51: A 10.0.0.0-10.255.255.255 80
+Output: Rule added
+----------
+Command 52: A 192.168.256.1 80
+Output: Invalid rule
+----------
+Command 53: A 192.168.1.1.1 80
+Output: Invalid rule
+----------
+Command 54: A 192.168..1.1 80
+Output: Invalid rule
+----------
+Command 55: A 192.168.1 80
+Output: Invalid rule
+----------
+Command 56: A
+Output: Invalid rule
+----------
+Command 57: A 192.168.1.1
+Output: Invalid rule
+----------
+Command 58: A 80
+Output: Invalid rule
+----------
+Command 59: A 192.168.001.001 80
+Output: Rule added
+----------
+Command 60: A 192.168.1.1 0080
+Output: Rule added
+----------
+Command 61: A 256.256.256.256 80
+Output: Invalid rule
+----------
+Command 62: A 255.255.255.255 80
+Output: Rule added
+----------
+Command 63: A 127.0.0.1 80
+Output: Rule added
+----------
+Command 64: A 127.0.0.0-127.0.0.255 80
+Output: Rule added
+----------
+Command 65: A 192.168.1.1 80-80
+Output: Invalid rule
+----------
+Command 66: A 192.168.1.1-192.168.1.1 80
+Output: Invalid rule
+----------
+Command 67: a 192.168.1.1 80
+Output: Illegal request
+----------
+Command 68: A 192.168.1.1.1.1 80
+Output: Invalid rule
+----------
+Command 69: A 192.168.1.é 80
+Output: Invalid rule
+----------
+Command 70: A 192.168.1.1 80é
+Output: Invalid rule
+----------
+Command 71: A 192.16a.1.1 80
+Output: Invalid rule
+----------
+Command 72: A 192.168.1.1 @80
+Output: Invalid rule
+----------
+Command 73:  A 192.168.1.1 80
+Output: Illegal request
+----------
+Command 74: A 192.168.1.1 80 
+Output: Rule added
+----------
+Command 75: A
+Output: Invalid rule
+----------
+Command 76: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 77: C 10.0.0.1 80
+Output: Connection rejected
+----------
+Command 78: C 192.168.1.1 9999
+Output: Connection rejected
+----------
+Command 79: C 10.0.0.1 80
+Output: Connection rejected
+----------
+Command 80: C 999.999.999.999 80
+Output: Illegal IP address or port specified
+----------
+Command 81: C 192.168.1.1 70000
+Output: Illegal IP address or port specified
+----------
+Command 82: C 192.168.1.1 -1
+Output: Illegal IP address or port specified
+----------
+Command 83: C 192.168.1.1 abc
+Output: Illegal IP address or port specified
+----------
+Command 84: C abc.def.ghi.jkl 80
+Output: Illegal IP address or port specified
+----------
+Command 85: C 80
+Output: Illegal IP address or port specified
+----------
+Command 86: C 192.168.1.1
+Output: Illegal IP address or port specified
+----------
+Command 87: C 192.168.1.1 80 extra
+Output: Illegal IP address or port specified
+----------
+Command 88: C 192.168.100.1 80
+Output: Connection rejected
+----------
+Command 89: C 192.168.1.1 8080
+Output: Connection rejected
+----------
+Command 90: C 10.10.10.10 8080
+Output: Connection rejected
+----------
+Command 91: C 192.168.1.5 5000
+Output: Connection rejected
+----------
+Command 92: C 10.0.0.1 80
+Output: Connection rejected
+----------
+Command 93: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 94: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 95: C -1.168.1.1 80
+Output: Illegal IP address or port specified
+----------
+Command 96: C 192.168.#.1 80
+Output: Illegal IP address or port specified
+----------
+Command 97: C 192.168.1.1 80$
+Output: Illegal IP address or port specified
+----------
+Command 98: C 192.168.a.1 80
+Output: Illegal IP address or port specified
+----------
+Command 99: C 192.168.1.1 80a
+Output: Illegal IP address or port specified
+----------
+Command 100: C 192. 168.1.1 80
+Output: Illegal IP address or port specified
+----------
+Command 101: C 192.168.1.1 8 0
+Output: Illegal IP address or port specified
+----------
+Command 102: C  192.168.1.1  80
+Output: Connection rejected
+----------
+Command 103: C\t192.168.1.1\t80
+Output: Illegal IP address or port specified
+----------
+Command 104: C 192.168.001.001 80
+Output: Connection rejected
+----------
+Command 105: C 192.168.1.1 0080
+Output: Connection rejected
+----------
+Command 106: C 255.255.255.255 80
+Output: Connection rejected
+----------
+Command 107: C 127.0.0.1 80
+Output: Connection rejected
+----------
+Command 108: C 192.168.1.1 0
+Output: Connection rejected
+----------
+Command 109: C 192.168.1.1 65535
+Output: Connection rejected
+----------
+Command 110: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 111: C 192.168.1.10 80
+Output: Connection rejected
+----------
+Command 112: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 113: C 192.168.1.1 100
+Output: Connection rejected
+----------
+Command 114: C 192.168.1.1.1 80
+Output: Illegal IP address or port specified
+----------
+Command 115: C 192.168.1 80
+Output: Illegal IP address or port specified
+----------
+Command 116: 192.168.1.1 80
+Output: Illegal request
+----------
+Command 117: D 192.168.1.1 80
+Output: Rule not found
+----------
+Command 118: D 192.168.1.1 80 multiple times
+Output: Rule invalid
+----------
+Command 119: D 192.168.1.1 80
+Output: Rule not found
+----------
+Command 120: D 10.0.0.1 80
+Output: Rule not found
+----------
+Command 121: D 999.999.999.999 80
+Output: Rule invalid
+----------
+Command 122: D 192.168.1.1 70000
+Output: Rule invalid
+----------
+Command 123: D 192.168.1.1 -1
+Output: Rule invalid
+----------
+Command 124: D abc.def.ghi.jkl 80
+Output: Rule invalid
+----------
+Command 125: D 192.168.1.1 abc
+Output: Rule invalid
+----------
+Command 126: D 80
+Output: Rule invalid
+----------
+Command 127: D 192.168.1.1
+Output: Rule invalid
+----------
+Command 128: D 192.168.1.1 80 extra
+Output: Rule invalid
+----------
+Command 129: D 192.168.1.1-192.168.1.10 80-100
+Output: Rule not found
+----------
+Command 130: D 192.168.1.1 80-100
+Output: Rule not found
+----------
+Command 131: D 192.168.1.1-192.168.1.10 80-100
+Output: Rule not found
+----------
+Command 132: D 10.10.10.10 80
+Output: Rule not found
+----------
+Command 133: D 192.168.1.1 8080
+Output: Rule not found
+----------
+Command 134: D 10.10.10.10 8080
+Output: Rule not found
+----------
+Command 135: D -1.168.1.1 80
+Output: Rule invalid
+----------
+Command 136: D 192.168.#.1 80
+Output: Rule invalid
+----------
+Command 137: D 192.168.1.1 80$
+Output: Rule invalid
+----------
+Command 138: D 192.168.a.1 80
+Output: Rule invalid
+----------
+Command 139: D 192.168.1.1 80a
+Output: Rule invalid
+----------
+Command 140: D 192. 168.1.1 80
+Output: Rule invalid
+----------
+Command 141: D 192.168.1.1 8 0
+Output: Rule invalid
+----------
+Command 142: D  192.168.1.1  80
+Output: Rule not found
+----------
+Command 143: D\t192.168.1.1\t80
+Output: Rule invalid
+----------
+Command 144: D 192.168.001.001 80
+Output: Rule not found
+----------
+Command 145: D 192.168.1.1 0080
+Output: Rule not found
+----------
+Command 146: D 255.255.255.255 80
+Output: Rule not found
+----------
+Command 147: D 127.0.0.1 80
+Output: Rule not found
+----------
+Command 148: D 192.168.1.1 0
+Output: Rule not found
+----------
+Command 149: D 192.168.1.1 65535
+Output: Rule not found
+----------
+Command 150: D 192.168.1.1.1 80
+Output: Rule invalid
+----------
+Command 151: D 192.168.1 80
+Output: Rule invalid
+----------
+Command 152: 192.168.1.1 80
+Output: Illegal request
+----------
+Command 153: C 192.168.1.1 80
+Output: Connection rejected
+----------
+Command 154: L
+Output: 
+----------
+Command 155: L
+Output: 
+----------
+Command 156: L extra
+Output: Illegal request
+----------
+Command 157: l
+Output: Illegal request
+----------
+Command 158: L$
+Output: Illegal request
+----------
+Command 159: L 
+Output: 
+----------
+Command 160: L
+Output: 
+----------
+Command 161: a 192.168.1.1 80
+Output: Illegal request
+----------
+Command 162:  A 192.168.1.1 80
+Output: Illegal request
+----------
+Command 163: C 192.168.1.1 80 
+Output: Connection rejected
+----------
+Command 164: X 192.168.1.1 80
+Output: Illegal request
+----------
+Command 165: 
+Output: Illegal request
+----------
+Command 166:    
+Output: Illegal request
+----------
+Command 167: A 192.168.1.1 80\n
+Output: Invalid rule
+----------
+Command 168: $(printf 'A 192.168.1.1 80\0')
+Output: Rule added
+----------
+Command 169: $(perl -e 'print "A 192.168.1.1 80" . "A" x 1024')
+Output: Invalid rule
+----------
+Command 170: A 192.168.1.1 80\nC 192.168.1.1 80
+Output: Invalid rule
+----------
+Command 171: A
+Output: Invalid rule
+----------
+Command 172: C
+Output: Illegal IP address or port specified
+----------
+Command 173: D
+Output: Rule invalid
+----------
+Command 174: P
+Output: Illegal request
+----------
+Command 175: $(perl -e 'print "A " . "a" x 10000')
+Output: Invalid rule
+----------
+Command 176: $(printf 'A 192.168.1.1 80\x01\x02\x03')
+Output: Invalid rule
+----------
+Command 177: A 192.168.1.1 80; DROP TABLE users;
+Output: Invalid rule
+----------
+Command 178: A 192.168.1.1 80; echo $(uname -a)
+Output: Invalid rule
+----------
+Command 179: A 192.168.1.1 😀
+Output: Invalid rule
+----------
