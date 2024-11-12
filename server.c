@@ -155,6 +155,22 @@ int is_valid_ip(const char* ip) {
     return count == 4;  
 }
 
+int is_valid_port_range(const char* port_range) {
+    int port1, port2;
+    char *endptr;
+
+    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
+        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535 && port1 != port2);
+    }
+
+    port1 = strtol(port_range, &endptr, 10);
+    if (*endptr == '\0' && port1 >= 0 && port1 <= 65535) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int is_ip_in_range(const char *ip_range, const char *target_ip) {
     char start_ip[16] = {0};
     char end_ip[16] = {0};
@@ -275,22 +291,6 @@ void print_rules(Rule* head) {
         }
         current_rule = current_rule->next;
     }
-}
-
-int is_valid_port_range(const char* port_range) {
-    int port1, port2;
-    char *endptr;
-
-    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
-        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535 && port1 != port2);
-    }
-
-    port1 = strtol(port_range, &endptr, 10);
-    if (*endptr == '\0' && port1 >= 0 && port1 <= 65535) {
-        return 1;
-    }
-
-    return 0;
 }
 
 int process_add_rule(char* line) {
