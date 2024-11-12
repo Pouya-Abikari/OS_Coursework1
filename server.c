@@ -277,6 +277,22 @@ void print_rules(Rule* head) {
     }
 }
 
+int is_valid_port_range(const char* port_range) {
+    int port1, port2;
+    char *endptr;
+
+    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
+        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535 && port1 != port2);
+    }
+
+    port1 = strtol(port_range, &endptr, 10);
+    if (*endptr == '\0' && port1 >= 0 && port1 <= 65535) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int process_add_rule(char* line) {
     char ip[32], port[16], extra[32];
     if (sscanf(line, "A %31s %15s %31s", ip, port, extra) == 3) {
