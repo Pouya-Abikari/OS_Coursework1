@@ -506,50 +506,55 @@ void *handle_client(void *arg) {
         while (command != NULL) {
             add_command_history_safe(command);
 
+            char extra[32];
             char firstChar = command[0];
-            switch (firstChar) {
-                case 'A':
-                    if (add_rule_safe(rule_list, command)) {
-                        snprintf(response, sizeof(response), "Rule added\n");
-                    } else {
-                        snprintf(response, sizeof(response), "Invalid rule\n");
-                    }
-                    break;
-                case 'C':
-                    switch (check_ip_port_safe(rule_list, command)) {
-                        case 0:
-                            snprintf(response, sizeof(response), "Connection rejected\n");
-                            break;
-                        case 1:
-                            snprintf(response, sizeof(response), "Connection accepted\n");
-                            break;
-                        case 2:
-                            snprintf(response, sizeof(response), "Illegal IP address or port specified\n");
-                            break;
-                    }
-                    break;
-                case 'R':
-                    capture_output((void(*)(void*))print_commands, command_head, response, sizeof(response));
-                    break;
-                case 'L':
-                    capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
-                    break;
-                case 'D':
-                    switch (delete_rule_safe(rule_list, command)) {
-                        case 0:
-                            snprintf(response, sizeof(response), "Rule invalid\n");
-                            break;
-                        case 1:
-                            snprintf(response, sizeof(response), "Rule deleted\n");
-                            break;
-                        case 2:
-                            snprintf(response, sizeof(response), "Rule not found\n");
-                            break;
-                    }
-                    break;
-                default:
-                    snprintf(response, sizeof(response), "Illegal request\n");
-                    break;
+            if ((firstChar == 'L' || firstChar == 'R') && sscanf(command, "%c %31s", &firstChar, extra) > 1) {
+                snprintf(response, sizeof(response), "Illegal request\n");
+            } else {
+                switch (firstChar) {
+                    case 'A':
+                        if (add_rule_safe(rule_list, command)) {
+                            snprintf(response, sizeof(response), "Rule added\n");
+                        } else {
+                            snprintf(response, sizeof(response), "Invalid rule\n");
+                        }
+                        break;
+                    case 'C':
+                        switch (check_ip_port_safe(rule_list, command)) {
+                            case 0:
+                                snprintf(response, sizeof(response), "Connection rejected\n");
+                                break;
+                            case 1:
+                                snprintf(response, sizeof(response), "Connection accepted\n");
+                                break;
+                            case 2:
+                                snprintf(response, sizeof(response), "Illegal IP address or port specified\n");
+                                break;
+                        }
+                        break;
+                    case 'R':
+                        capture_output((void(*)(void*))print_commands, command_head, response, sizeof(response));
+                        break;
+                    case 'L':
+                        capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                        break;
+                    case 'D':
+                        switch (delete_rule_safe(rule_list, command)) {
+                            case 0:
+                                snprintf(response, sizeof(response), "Rule invalid\n");
+                                break;
+                            case 1:
+                                snprintf(response, sizeof(response), "Rule deleted\n");
+                                break;
+                            case 2:
+                                snprintf(response, sizeof(response), "Rule not found\n");
+                                break;
+                        }
+                        break;
+                    default:
+                        snprintf(response, sizeof(response), "Illegal request\n");
+                        break;
+                }   
             }
             send(sock, response, strlen(response), 0);
             memset(response, 0, sizeof(response)); 
@@ -623,52 +628,56 @@ void run_interactive() {
 
         add_command(str);
 
+        char extra[32];
         char firstChar = str[0];
-        switch (firstChar) {
-            case 'A':
-                if (process_add_rule(str)) {
-                    printf("Rule added\n");
-                } else {
-                    printf("Invalid rule\n");
-                }
-                break;
-            case 'C':
-                switch (process_check_ip(str)) {
-                    case 0:
-                        printf("Connection rejected\n");
-                        break;
-                    case 1:
-                        printf("Connection accepted\n");
-                        break;
-                    case 2:
-                        printf("Illegal IP address or port specified\n");
-                        break;
-                }
-                break;
-            case 'R':
-                print_commands(command_head);
-                break;
-            case 'L':
-                print_rules(rule_list);
-                break;
-            case 'D':
-                switch (process_delete_rule(str)) {
-                    case 0:
-                        printf("Rule invalid\n");
-                        break;
-                    case 1:
-                        printf("Rule deleted\n");
-                        break;
-                    case 2:
-                        printf("Rule not found\n");
-                        break;
-                }
-                break;
-            default:
-                printf("Illegal request\n");
-                break;
+        if ((firstChar == 'L' || firstChar == 'R') && sscanf(str, "%c %31s", &firstChar, extra) == 2) {
+            printf("Illegal request\n");
+        } else {
+            switch (firstChar) {
+                case 'A':
+                    if (process_add_rule(str)) {
+                        printf("Rule added\n");
+                    } else {
+                        printf("Invalid rule\n");
+                    }
+                    break;
+                case 'C':
+                    switch (process_check_ip(str)) {
+                        case 0:
+                            printf("Connection rejected\n");
+                            break;
+                        case 1:
+                            printf("Connection accepted\n");
+                            break;
+                        case 2:
+                            printf("Illegal IP address or port specified\n");
+                            break;
+                    }
+                    break;
+                case 'R':
+                    print_commands(command_head);
+                    break;
+                case 'L':
+                    print_rules(rule_list);
+                    break;
+                case 'D':
+                    switch (process_delete_rule(str)) {
+                        case 0:
+                            printf("Rule invalid\n");
+                            break;
+                        case 1:
+                            printf("Rule deleted\n");
+                            break;
+                        case 2:
+                            printf("Rule not found\n");
+                            break;
+                    }
+                    break;
+                default:
+                    printf("Illegal request\n");
+                    break;
+            }
         }
-
         free(str);
         str = NULL;
     }
