@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 pthread_mutex_t rule_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t command_history_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -74,7 +75,6 @@ void process_ip_range(const char *ip_range, int start_ip[4], int end_ip[4]) {
         parse_ip(end_ip_str, end_ip);
 
         if (compare_ip(start_ip, end_ip) >= 0) {
-            printf("Invalid IP range: start IP must be less than end IP\n");
             memset(start_ip, 0, sizeof(int) * 4);
             memset(end_ip, 0, sizeof(int) * 4);
             return; 
@@ -112,45 +112,47 @@ void print_commands(CommandHistory* head) {
 }
 
 int is_valid_ip_part(const char* part) {
+    if (*part == '\0') return 0; 
+
+    for (int i = 0; part[i]; i++) {
+        if (!isdigit(part[i])) return 0; 
+    }
     int num = atoi(part);
     return strlen(part) > 0 && strlen(part) <= 3 && num >= 0 && num <= 255;
 }
 
 int is_valid_ip(const char* ip) {
-    char ip_copy[64]; 
+    char ip_copy[64];
     strncpy(ip_copy, ip, sizeof(ip_copy) - 1);
-    ip_copy[63] = '\0';  
+    ip_copy[sizeof(ip_copy) - 1] = '\0';  
 
     char *dash_pos = strchr(ip_copy, '-');
     if (dash_pos) {
-        *dash_pos = '\0'; 
+        *dash_pos = '\0';  
         char* start_ip = ip_copy;
         char* end_ip = dash_pos + 1;
-        return is_valid_ip(start_ip) && is_valid_ip(end_ip); 
+        return is_valid_ip(start_ip) && is_valid_ip(end_ip);  
     }
 
     char* token;
     int count = 0;
-    for (token = strtok(ip_copy, "."); token; token = strtok(NULL, "."), count++) {
-        if (!is_valid_ip_part(token) || count >= 4) return 0;
+    int period_count = 0;
+    
+    for (int i = 0; ip_copy[i] != '\0'; ++i) {
+        if (ip_copy[i] == '.') {
+            period_count++;
+            if (i == 0 || ip_copy[i + 1] == '\0' || ip_copy[i + 1] == '.') {
+                return 0;  
+            }
+        }
     }
-    return count == 4;
-}
+    if (period_count != 3) return 0;  
 
-int is_valid_port_range(const char* port_range) {
-    int port1, port2;
-    char *endptr;
-
-    if (sscanf(port_range, "%d-%d", &port1, &port2) == 2) {
-        return (port1 >= 0 && port1 <= 65535 && port2 >= port1 && port2 <= 65535);
+    for (token = strtok(ip_copy, "."); token; token = strtok(NULL, ".")) {
+        if (!is_valid_ip_part(token)) return 0; 
+        count++;
     }
-
-    port1 = strtol(port_range, &endptr, 10);
-    if (*endptr == '\0' && port1 >= 0 && port1 <= 65535) {
-        return 1;
-    }
-
-    return 0;
+    return count == 4;  
 }
 
 int is_ip_in_range(const char *ip_range, const char *target_ip) {
@@ -204,17 +206,6 @@ int is_port_in_range(const char *port_range, int port) {
     } else {
         return atoi(port_range) == port;
     }
-}
-
-int query_exists(Query* query_list, const char* ip, int port) {
-    Query* current = query_list;
-    while (current) {
-        if (strcmp(current->ip_address, ip) == 0 && current->port == port) {
-            return 1; 
-        }
-        current = current->next;
-    }
-    return 0;  
 }
 
 Query* add_query(Query* query_list, const char* ip_address, unsigned short int port) {
@@ -287,7 +278,11 @@ void print_rules(Rule* head) {
 }
 
 int process_add_rule(char* line) {
-    char ip[32], port[16];
+    char ip[32], port[16], extra[32];
+    if (sscanf(line, "A %31s %15s %31s", ip, port, extra) == 3) {
+        return 0; 
+    }
+
     if (sscanf(line, "A %31s %15s", ip, port) != 2) {
         return 0; 
     }
@@ -339,43 +334,59 @@ void process_args(int argc, char** argv, CmdArg* pCmd, int *port) {
 
 int check_ip_port(Rule* rule_list, const char* ip, int port) {
     Rule* current_rule = rule_list;
-    int connection_accepted = 0;
 
     while (current_rule) {
         if (is_ip_in_range(current_rule->ip_range, ip) && is_port_in_range(current_rule->port_range, port)) {
-            connection_accepted = 1; 
-            if (!query_exists(current_rule->queries, ip, port)) {
-                current_rule->queries = add_query(current_rule->queries, ip, port);
-                return 1;
-            }
+            current_rule->queries = add_query(current_rule->queries, ip, port);
+            return 1;
         }
         current_rule = current_rule->next;
     }
 
-    return connection_accepted;
+    return 0;
+}
+
+int is_valid_port(int port) {
+    return (port >= 0 && port <= 65535);
 }
 
 int process_check_ip(char* line) {
     char ip[32];
     int port;
+    char extra[32];  
+
+    if (sscanf(line, "C %31s %d %31s", ip, &port, extra) == 3) {
+        return 2; 
+    }
+
     if (sscanf(line, "C %31s %d", ip, &port) != 2) {
-        printf("Illegal IP address or port specified\n");
         return 2;
     }
 
-    return check_ip_port(rule_list, ip, port);
+    if (!is_valid_ip(ip) || !is_valid_port(port)) {
+        return 2; 
+    }
+
+    if (!check_ip_port(rule_list, ip, port)) {
+        return 0; 
+    }
+
+    return 1;
 }
 
 int process_delete_rule(char *rule) {
-    char ip[32], port[16];
+    char ip[32], port[16], extra[32];
+    
+    if (sscanf(rule, "D %31s %15s %31s", ip, port, extra) == 3) {
+        return 0; 
+    }
+
     if (sscanf(rule, "D %31s %15s", ip, port) != 2) {
-        printf("Invalid delete command\n");
         return 0;
     }
 
     if (!is_valid_ip(ip) || !is_valid_port_range(port)) {
-        printf("Invalid rule\n");
-        return 0;
+        return 0; 
     }
 
     Rule* current = rule_list;
@@ -389,12 +400,13 @@ int process_delete_rule(char *rule) {
                 prev->next = current->next;
             }
             free(current);
-            return 1;
+            return 1; 
         }
         prev = current;
         current = current->next;
     }
-    return 2;
+
+    return 2; 
 }
 
 int add_rule_safe(Rule* head, char* buffer) {
