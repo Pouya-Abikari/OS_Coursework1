@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <arpa/inet.h>
 
 pthread_rwlock_t rule_rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_rwlock_t command_history_rwlock = PTHREAD_RWLOCK_INITIALIZER;
@@ -86,22 +87,34 @@ void process_ip_range(const char *ip_range, int start_ip[4], int end_ip[4]) {
 }
 
 void add_command_history(CommandHistory** head, const char* command) {
-    CommandHistory* new_command = malloc(sizeof(CommandHistory));
-    if (!new_command) {
-        fprintf(stderr, "Memory allocation failed for new command.\n");
-        exit(EXIT_FAILURE);
+    char clean_command[1024];
+    int i = 0, j = 0;
+    
+    while (isspace((unsigned char)command[i])) i++;
+    
+    while (command[i] && command[i] != '\n' && j < sizeof(clean_command) - 1) {
+        clean_command[j++] = command[i++];
     }
-    new_command->command = strdup(command);  
-    new_command->next = NULL;               
+    clean_command[j] = '\0'; 
 
-    if (*head == NULL) {
-        *head = new_command;
-    } else {
-        CommandHistory* current = *head;
-        while (current->next != NULL) {
-            current = current->next;
+    if (clean_command[0] != '\0') {
+        CommandHistory* new_command = malloc(sizeof(CommandHistory));
+        if (!new_command) {
+            fprintf(stderr, "Memory allocation failed for new command.\n");
+            exit(EXIT_FAILURE);
         }
-        current->next = new_command;
+        new_command->command = strdup(clean_command);
+        new_command->next = NULL;
+
+        if (*head == NULL) {
+            *head = new_command;  
+        } else {
+            CommandHistory* current = *head;
+            while (current->next != NULL) {
+                current = current->next;
+            }
+            current->next = new_command;  
+        }
     }
 }
 
@@ -172,43 +185,23 @@ int is_valid_port_range(const char* port_range) {
 }
 
 int is_ip_in_range(const char *ip_range, const char *target_ip) {
-    char start_ip[16] = {0};
-    char end_ip[16] = {0};
+    char start_ip_str[16], end_ip_str[16], *dash_pos;
 
-    char *dash_pos = strchr(ip_range, '-');
+    dash_pos = strchr(ip_range, '-');
     if (dash_pos) {
-        strncpy(start_ip, ip_range, dash_pos - ip_range);
-        start_ip[dash_pos - ip_range] = '\0';
-        strcpy(end_ip, dash_pos + 1);
+        strncpy(start_ip_str, ip_range, dash_pos - ip_range);
+        start_ip_str[dash_pos - ip_range] = '\0';
+        strcpy(end_ip_str, dash_pos + 1);
     } else {
-        strcpy(start_ip, ip_range);
-        strcpy(end_ip, ip_range);
+        strcpy(start_ip_str, ip_range);
+        strcpy(end_ip_str, ip_range);
     }
 
-    int start_ip_array[4], end_ip_array[4], target_ip_array[4];
-    parse_ip(start_ip, start_ip_array);
-    parse_ip(end_ip, end_ip_array);
-    parse_ip(target_ip, target_ip_array);
+    uint32_t start_ip = ntohl(inet_addr(start_ip_str));
+    uint32_t end_ip = ntohl(inet_addr(end_ip_str));
+    uint32_t target_ip_num = ntohl(inet_addr(target_ip));
 
-    for (int i = 0; i < 4; i++) {
-        if (target_ip_array[i] < start_ip_array[i]) {
-            return 0;
-        }
-        if (target_ip_array[i] > start_ip_array[i]) {
-            break; 
-        }
-    }
-
-    for (int i = 0; i < 4; i++) {
-        if (target_ip_array[i] > end_ip_array[i]) {
-            return 0; 
-        }
-        if (target_ip_array[i] < end_ip_array[i]) {
-            break;
-        }
-    }
-
-    return 1;
+    return target_ip_num >= start_ip && target_ip_num <= end_ip;
 }
 
 int is_port_in_range(const char *port_range, int port) {
@@ -501,73 +494,77 @@ void *handle_client(void *arg) {
     free(arg);
 
     char buffer[1024] = {0};
-    char response[4096] = {0};  
+    char response[4096] = {0};
     int valread;
 
-    while ((valread = read(sock, buffer, 1024)) > 0) {
+    while ((valread = read(sock, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[valread] = '\0';
 
         char *command = strtok(buffer, "\n");
-        while (command != NULL) {
+        while (command) {
+            command[strcspn(command, "\r\n")] = 0; 
+
+            if (command[0] == '\0') {
+                command = strtok(NULL, "\n");
+                continue;
+            }
+
             add_command_history_safe(command);
 
-            char extra[32];
             char firstChar = command[0];
-            if ((firstChar == 'L' || firstChar == 'R') && sscanf(command, "%c %31s", &firstChar, extra) > 1) {
-                snprintf(response, sizeof(response), "Illegal request\n");
-            } else {
-                switch (firstChar) {
-                    case 'A':
-                        if (add_rule_safe(rule_list, command)) {
-                            snprintf(response, sizeof(response), "Rule added\n");
-                        } else {
-                            snprintf(response, sizeof(response), "Invalid rule\n");
-                        }
-                        break;
-                    case 'C':
-                        switch (check_ip_port_safe(rule_list, command)) {
-                            case 0:
-                                snprintf(response, sizeof(response), "Connection rejected\n");
-                                break;
-                            case 1:
-                                snprintf(response, sizeof(response), "Connection accepted\n");
-                                break;
-                            case 2:
-                                snprintf(response, sizeof(response), "Illegal IP address or port specified\n");
-                                break;
-                        }
-                        break;
-                    case 'R':
-                        capture_output((void(*)(void*))print_commands_safe, command_head, response, sizeof(response));
-                        break;
-                    case 'L':
-                        capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
-                        break;
-                    case 'D':
-                        switch (delete_rule_safe(rule_list, command)) {
-                            case 0:
-                                snprintf(response, sizeof(response), "Rule invalid\n");
-                                break;
-                            case 1:
-                                snprintf(response, sizeof(response), "Rule deleted\n");
-                                break;
-                            case 2:
-                                snprintf(response, sizeof(response), "Rule not found\n");
-                                break;
-                        }
-                        break;
-                    default:
-                        snprintf(response, sizeof(response), "Illegal request\n");
-                        break;
-                }   
+            switch (firstChar) {
+                case 'A':
+                    if (add_rule_safe(rule_list, command)) {
+                        snprintf(response, sizeof(response), "Rule added\n");
+                    } else {
+                        snprintf(response, sizeof(response), "Invalid rule\n");
+                    }
+                    break;
+                case 'C':
+                    int checkResult = check_ip_port_safe(rule_list, command);
+                    switch (checkResult) {
+                        case 0:
+                            snprintf(response, sizeof(response), "Connection rejected\n");
+                            break;
+                        case 1:
+                            snprintf(response, sizeof(response), "Connection accepted\n");
+                            break;
+                        case 2:
+                            snprintf(response, sizeof(response), "Illegal IP address or port specified\n");
+                            break;
+                    }
+                    break;
+                case 'R':
+                    capture_output((void(*)(void*))print_commands_safe, command_head, response, sizeof(response));
+                    break;
+                case 'L':
+                    capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                    break;
+                case 'D':
+                    switch (delete_rule_safe(rule_list, command)) {
+                        case 0:
+                            snprintf(response, sizeof(response), "Rule invalid\n");
+                            break;
+                        case 1:
+                            snprintf(response, sizeof(response), "Rule deleted\n");
+                            break;
+                        case 2:
+                            snprintf(response, sizeof(response), "Rule not found\n");
+                            break;
+                    }
+                    break;
+                default:
+                    snprintf(response, sizeof(response), "Illegal request\n");
+                    break;
             }
-            send(sock, response, strlen(response), 0);
-            memset(response, 0, sizeof(response)); 
 
-            command = strtok(NULL, "\n");
+            send(sock, response, strlen(response), 0);
+            memset(response, 0, sizeof(response));  
+
+            command = strtok(NULL, "\n");  
         }
-    memset(buffer, 0, sizeof(buffer)); 
-}
+        memset(buffer, 0, sizeof(buffer));  
+    }
 
     close(sock);
     return NULL;
@@ -630,6 +627,8 @@ void run_interactive() {
             free(str);
             break;
         }
+
+        str[res - 1] = '\0';
 
         add_command(str);
 
