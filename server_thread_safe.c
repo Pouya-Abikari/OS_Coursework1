@@ -525,8 +525,7 @@ void *handle_client(void *arg) {
                     }
                     break;
                 case 'C':
-                    int checkResult = check_ip_port_safe(rule_list, command);
-                    switch (checkResult) {
+                    switch (check_ip_port_safe(rule_list, command)) {
                         case 0:
                             snprintf(response, sizeof(response), "Connection rejected\n");
                             break;
