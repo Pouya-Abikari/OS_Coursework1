@@ -275,6 +275,10 @@ void add_command(const char* str) {
 void print_rules(Rule* head) {
     Rule* current_rule = head;
 
+    if (current_rule == NULL) {
+        return;
+    }
+
     while (current_rule != NULL) {
         printf("Rule: %s %s\n", current_rule->ip_range, current_rule->port_range);
         Query* current_query = current_rule->queries;
@@ -525,8 +529,7 @@ void *handle_client(void *arg) {
                     }
                     break;
                 case 'C':
-                    int checkResult = check_ip_port_safe(rule_list, command);
-                    switch (checkResult) {
+                    switch (check_ip_port_safe(rule_list, command)) {
                         case 0:
                             snprintf(response, sizeof(response), "Connection rejected\n");
                             break;
@@ -542,7 +545,11 @@ void *handle_client(void *arg) {
                     capture_output((void(*)(void*))print_commands_safe, command_head, response, sizeof(response));
                     break;
                 case 'L':
-                    capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                    if (rule_list == NULL) {
+                        snprintf(response, sizeof(response), "\n");
+                    } else {
+                        capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                    }
                     break;
                 case 'D':
                     switch (delete_rule_safe(rule_list, command)) {
