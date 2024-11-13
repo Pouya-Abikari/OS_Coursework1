@@ -275,6 +275,10 @@ void add_command(const char* str) {
 void print_rules(Rule* head) {
     Rule* current_rule = head;
 
+    if (current_rule == NULL) {
+        return;
+    }
+
     while (current_rule != NULL) {
         printf("Rule: %s %s\n", current_rule->ip_range, current_rule->port_range);
         Query* current_query = current_rule->queries;
@@ -541,7 +545,11 @@ void *handle_client(void *arg) {
                     capture_output((void(*)(void*))print_commands_safe, command_head, response, sizeof(response));
                     break;
                 case 'L':
-                    capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                    if (rule_list == NULL) {
+                        snprintf(response, sizeof(response), "\n");
+                    } else {
+                        capture_output((void(*)(void*))print_rules_safe, rule_list, response, sizeof(response));
+                    }
                     break;
                 case 'D':
                     switch (delete_rule_safe(rule_list, command)) {
@@ -665,7 +673,11 @@ void run_interactive() {
                     print_commands(command_head);
                     break;
                 case 'L':
-                    print_rules(rule_list);
+                    if (rule_list == NULL) {
+                        printf("\n");
+                    } else {
+                        print_rules(rule_list);
+                    }
                     break;
                 case 'D':
                     switch (process_delete_rule(str)) {
