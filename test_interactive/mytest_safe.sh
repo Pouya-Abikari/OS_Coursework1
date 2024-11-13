@@ -187,7 +187,14 @@ declare -a commands=(
     "D",
     "P",
     "A 192.168.1.1 80; DROP TABLE users;",
-    "A 192.168.1.1 😀"
+    "A 192.168.1.1 😀",
+    "C 192.168.1.1-192.168.1 80-80",
+    "C 192.168.1.1-192.3.1 80-30",
+    "C 192.168.1.1-192.200.2 80-100",
+    "C 192.168.1.1-192.168.1 80-80",
+    "C 192.168.1-192.3.1.1 80",
+    "C 192.168.1.1-192.3.1 80",
+    "C 192.189.200.1 80-100"
 )
 
 # Ensure the expected_results_safe.txt file exists
@@ -196,6 +203,9 @@ touch expected_results_safe.txt
 # Clear the output file and comparison results at the start of the script
 echo "" > output.txt
 echo "" > comparison_result.txt
+
+# kill any running server instances
+killall $server > /dev/null 2> /dev/null
 
 # Start the server in interactive mode in the background
 ./server -i &

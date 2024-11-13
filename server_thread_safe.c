@@ -364,6 +364,10 @@ int process_check_ip(char* line) {
     int port;
     char extra[32];  
 
+    if (strchr(line, '-') != NULL) {
+        return 2; 
+    }
+
     if (sscanf(line, "C %31s %d %31s", ip, &port, extra) == 3) {
         return 2; 
     }

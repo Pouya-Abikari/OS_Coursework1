@@ -521,3 +521,24 @@ Output: Invalid rule
 Command 174: A 192.168.1.1 😀
 Output: Invalid rule
 ----------
+Command 175: C 192.168.1.1-192.168.1 80-80
+Output: Illegal IP address or port specified
+----------
+Command 176: C 192.168.1.1-192.3.1 80-30
+Output: Illegal IP address or port specified
+----------
+Command 177: C 192.168.1.1-192.200.2 80-100
+Output: Illegal IP address or port specified
+----------
+Command 178: C 192.168.1.1-192.168.1 80-80
+Output: Illegal IP address or port specified
+----------
+Command 179: C 192.168.1-192.3.1.1 80
+Output: Illegal IP address or port specified
+----------
+Command 180: C 192.168.1.1-192.3.1 80
+Output: Illegal IP address or port specified
+----------
+Command 181: C 192.189.200.1 80-100
+Output: Illegal IP address or port specified
+----------

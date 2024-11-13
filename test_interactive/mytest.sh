@@ -192,7 +192,7 @@ declare -a commands=(
     "$(printf 'A 192.168.1.1 80\x01\x02\x03')",
     "A 192.168.1.1 80; DROP TABLE users;",
     "A 192.168.1.1 80; echo $(uname -a)",
-    "A 192.168.1.1 😀"
+    "A 192.168.1.1 😀",
 )
 
 # Ensure the expected_results.txt file exists
