@@ -673,11 +673,7 @@ void run_interactive() {
                     print_commands(command_head);
                     break;
                 case 'L':
-                    if (rule_list == NULL) {
-                        printf("\n");
-                    } else {
-                        print_rules(rule_list);
-                    }
+                    print_rules(rule_list);
                     break;
                 case 'D':
                     switch (process_delete_rule(str)) {
