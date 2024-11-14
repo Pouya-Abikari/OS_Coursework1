@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <netdb.h> 
+#include <netdb.h>
 
 #define BUFSIZE 4096
 
@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
     char buffer[BUFSIZE] = {0};
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;    
-    hints.ai_socktype = SOCK_STREAM; 
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
     int status;
     if ((status = getaddrinfo(argv[1], argv[2], &hints, &res)) != 0) {
@@ -47,20 +47,24 @@ int main(int argc, char **argv) {
     char command[BUFSIZE] = {0};
     for (int i = 3; i < argc; i++) {
         strcat(command, argv[i]);
-        if (i < argc - 1) strcat(command, " ");  
+        if (i < argc - 1) strcat(command, " ");
     }
 
-    write(sock, command, strlen(command)); 
-
-    ssize_t bytes_read = read(sock, buffer, sizeof(buffer) - 1);
-    if (bytes_read < 0) {
-        perror("Failed to receive response");
+    if (send(sock, command, strlen(command), 0) < 0) {
+        perror("Failed to send command");
         close(sock);
         return -1;
     }
 
-    buffer[bytes_read] = '\0';  
-    printf("%s", buffer);     
+    int bytes_read;
+    while ((bytes_read = recv(sock, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        buffer[bytes_read] = '\0';  
+        printf("%s", buffer);
+    }
+
+    if (bytes_read < 0) {
+        perror("Read error");
+    }
 
     close(sock);
     return 0;

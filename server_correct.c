@@ -489,11 +489,12 @@ char* get_rules_string(Rule* head) {
         perror("malloc failed");
         return NULL;
     }
-    result[0] = '\0';  
+    result[0] = '\0';  // Initialize with an empty string
 
     Rule* current_rule = head;
     while (current_rule) {
-        char rule_line[128]; 
+        // Create a string for the current rule
+        char rule_line[128];  // Larger buffer for each line to avoid truncation
         int rule_length = snprintf(rule_line, sizeof(rule_line), "Rule: %s %s\n",
                                    current_rule->ip_range, current_rule->port_range);
 
@@ -629,7 +630,7 @@ void *handle_client(void *arg) {
             case 'R': {
                 char *command_history = get_command_history_string(command_head);
                 send(sock, command_history, strlen(command_history), 0);
-                free(command_history); 
+                free(command_history);  // Free memory after sending
                 break;
             }
             case 'L': {
@@ -638,7 +639,7 @@ void *handle_client(void *arg) {
                 } else {
                     char *rules = get_rules_string_safe();
                     send(sock, rules, strlen(rules), 0);
-                    free(rules); 
+                    free(rules);  // Free memory after sending
                 }
                 break;
             }
